@@ -4,11 +4,13 @@ This guide explains how to configure the serverless starter for different enviro
 
 ## Overview
 
-The solution supports multiple environments through Terraform variables and Function App settings. Each environment should have:
-- Separate Azure resources
-- Environment-specific configuration
-- Appropriate security settings
-- Different JWT secrets
+The solution supports multiple environments through Terraform variables and Function App settings. Each environment has:
+- Separate Azure resources (Cosmos DB, Functions, APIM, Key Vault)
+- Environment-specific configuration via `.tfvars` files
+- Secrets managed in Azure Key Vault
+- Managed Identity for passwordless authentication
+- API Management gateway for unified API access
+- Different JWT secrets per environment
 
 ## Environment Structure
 

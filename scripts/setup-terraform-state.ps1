@@ -88,6 +88,28 @@ az storage blob service-properties delete-policy update `
     --days-retained 7 `
     --enable true
 
+# Grant service principal access (if exists)
+Write-Host "`nChecking for GitHub Actions service principal..." -ForegroundColor Yellow
+$spList = az ad sp list --display-name "sp-github-actions-serverless" --query "[0].appId" -o tsv 2>$null
+if ($spList) {
+    Write-Host "Found service principal: $spList" -ForegroundColor Green
+    Write-Host "Granting Storage Blob Data Contributor role..." -ForegroundColor Yellow
+    
+    $scope = "/subscriptions/$($account.id)/resourceGroups/$ResourceGroupName/providers/Microsoft.Storage/storageAccounts/$storageAccountName"
+    az role assignment create `
+        --assignee $spList `
+        --role "Storage Blob Data Contributor" `
+        --scope $scope 2>$null
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✅ Service principal granted access to Terraform state storage" -ForegroundColor Green
+    } else {
+        Write-Host "⚠️  Role assignment may already exist or permission denied" -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "ℹ️  No service principal found (run create-service-principal.ps1 first)" -ForegroundColor Cyan
+}
+
 # Get storage account key
 $storageKey = az storage account keys list `
     --account-name $storageAccountName `

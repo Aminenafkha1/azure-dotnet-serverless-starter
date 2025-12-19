@@ -2,9 +2,22 @@ name: Cost Estimation
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, develop]  # Estimate costs for infrastructure PRs
     paths:
-      - 'infrastructure/**'
+      - 'infrastructure/**/*.tf'
+      - 'infrastructure/**/*.tfvars'
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to estimate'
+        required: false
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+        default: dev
 
 jobs:
   infracost:

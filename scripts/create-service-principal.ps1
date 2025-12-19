@@ -47,13 +47,21 @@ Write-Host "`nCreating service principal: $ServicePrincipalName" -ForegroundColo
 $sp = az ad sp create-for-rbac `
     --name $ServicePrincipalName `
     --role Contributor `
-    --scopes "/subscriptions/$Subscription" `
-    --sdk-auth | ConvertFrom-Json
+    --scopes "/subscriptions/$Subscription" | ConvertFrom-Json
 
 if (-not $sp) {
     Write-Error "Failed to create service principal"
     exit 1
 }
+
+# Grant User Access Administrator role for managing role assignments
+Write-Host "Granting User Access Administrator role..." -ForegroundColor Yellow
+az role assignment create `
+    --assignee $sp.appId `
+    --role "User Access Administrator" `
+    --scope "/subscriptions/$Subscription" | Out-Null
+
+Write-Host "✅ Service principal created with required roles" -ForegroundColor Green
 
 # Get tenant ID
 $account = az account show | ConvertFrom-Json

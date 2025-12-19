@@ -567,13 +567,25 @@ Before going to production:
 - [ ] Add integration tests
 - [ ] Document API with OpenAPI/Swagger
 
+## 📚 Documentation
+
+Comprehensive documentation is available in the `/docs` folder:
+
+- **[Architecture](docs/ARCHITECTURE.md)** - System architecture diagrams and component interactions
+- **[API Examples](docs/API_EXAMPLES.md)** - Complete API usage examples with curl commands
+- **[Environment Configuration](docs/ENVIRONMENT_CONFIG.md)** - Multi-environment setup guide
+- **[Local Development with Azure](docs/LOCAL_DEVELOPMENT_WITH_AZURE.md)** - Connect local dev to Azure resources
+- **[DevOps & CI/CD](DEVOPS.md)** - Complete GitHub Actions pipeline setup
+- **[Workflow Strategy](docs/WORKFLOW_STRATEGY.md)** - Branch strategy and deployment automation
+- **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## 📝 License
 
@@ -582,18 +594,22 @@ This project is licensed under the MIT License.
 ## 🙋 Support
 
 For issues and questions:
-- Create an issue in the repository
-- Check Azure Functions documentation
-- Review Terraform Azure provider docs
+- Create an issue in the [GitHub repository](https://github.com/Aminenafkha1/azure-dotnet-serverless-starter/issues)
+- Check [Azure Functions documentation](https://docs.microsoft.com/en-us/azure/azure-functions/)
+- Review [Terraform Azure provider docs](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs)
 
 ## 🔗 Useful Links
 
 - [Azure Functions Documentation](https://docs.microsoft.com/en-us/azure/azure-functions/)
 - [.NET 9 Documentation](https://docs.microsoft.com/en-us/dotnet/)
 - [Azure Cosmos DB Documentation](https://docs.microsoft.com/en-us/azure/cosmos-db/)
+- [Azure API Management](https://docs.microsoft.com/en-us/azure/api-management/)
+- [Azure Key Vault](https://docs.microsoft.com/en-us/azure/key-vault/)
 - [Terraform Azure Provider](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs)
 - [Azure CLI Reference](https://docs.microsoft.com/en-us/cli/azure/)
+- [GitHub Actions for Azure](https://github.com/Azure/actions)
 
 ---
 
-**Built with ❤️ using Azure, .NET, and Terraform**
+**Built with ❤️ using Azure, .NET, Terraform, and modern DevOps practices**
+

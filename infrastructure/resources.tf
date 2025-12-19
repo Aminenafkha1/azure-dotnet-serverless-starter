@@ -116,7 +116,8 @@ resource "random_password" "jwt_secret" {
 }
 
 locals {
-  jwt_secret_value = var.jwt_secret != "" ? var.jwt_secret : random_password.jwt_secret[0].result
+  # Use coalesce to avoid conditional with sensitive value
+  jwt_secret_value = coalesce(var.jwt_secret, try(random_password.jwt_secret[0].result, ""))
 }
 
 # Auth Function App

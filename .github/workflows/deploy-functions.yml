@@ -2,20 +2,27 @@ name: Deploy Azure Functions
 
 on:
   push:
-    branches: [main]
+    branches: [main]  # Auto-deploy to dev on main branch
     paths:
-      - 'src/**'
-      - '!src/BlazorWeb/**'
+      - 'src/AuthService/**'
+      - 'src/ProductService/**'
+      - 'src/Shared/**'
+      - '.github/workflows/deploy-functions.yml'
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Environment to deploy'
+        description: 'Environment to deploy (staging/prod require approval)'
         required: true
         type: choice
         options:
           - dev
           - staging
           - prod
+      skip_tests:
+        description: 'Skip smoke tests'
+        required: false
+        type: boolean
+        default: false
 
 env:
   DOTNET_VERSION: '8.0.x'
@@ -88,7 +95,7 @@ jobs:
       - name: Azure Login
         uses: azure/login@v1
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          creds: ${{ format('{{"clientId":"{0}","clientSecret":"{1}","subscriptionId":"{2}","tenantId":"{3}"}}', secrets.AZURE_CLIENT_ID, secrets.AZURE_CLIENT_SECRET, secrets.AZURE_SUBSCRIPTION_ID, secrets.AZURE_TENANT_ID) }}
 
       - name: Deploy to Azure Functions
         id: deploy
@@ -122,7 +129,7 @@ jobs:
       - name: Azure Login
         uses: azure/login@v1
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          creds: ${{ format('{{"clientId":"{0}","clientSecret":"{1}","subscriptionId":"{2}","tenantId":"{3}"}}', secrets.AZURE_CLIENT_ID, secrets.AZURE_CLIENT_SECRET, secrets.AZURE_SUBSCRIPTION_ID, secrets.AZURE_TENANT_ID) }}
 
       - name: Deploy to Azure Functions
         id: deploy
@@ -150,7 +157,7 @@ jobs:
       - name: Azure Login
         uses: azure/login@v1
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          creds: ${{ format('{{\"clientId\":\"{0}\",\"clientSecret\":\"{1}\",\"subscriptionId\":\"{2}\",\"tenantId\":\"{3}\"}}', secrets.AZURE_CLIENT_ID, secrets.AZURE_CLIENT_SECRET, secrets.AZURE_SUBSCRIPTION_ID, secrets.AZURE_TENANT_ID) }}
 
       - name: Get APIM Gateway URL
         id: apim
