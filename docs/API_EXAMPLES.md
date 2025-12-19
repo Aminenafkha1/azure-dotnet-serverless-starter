@@ -1,13 +1,21 @@
 # API Examples
 
-This document provides detailed examples of how to interact with the Auth and Product services.
+This document provides detailed examples of how to interact with the Auth and Product services through Azure API Management.
+
+## Base URLs
+
+- **Local Development**: `http://localhost:7071` (Auth), `http://localhost:7072` (Product)
+- **Azure via APIM**: `https://apim-serverless-starter-{env}-{suffix}.azure-api.net`
+  - Auth API: `/auth/api/auth/*`
+  - Product API: `/products/api/products/*`
 
 ## Authentication Flow
 
 ### 1. Register a New User
 
+**Production (via APIM):**
 ```bash
-curl -X POST https://func-auth-dev-xxxxx.azurewebsites.net/api/auth/register \
+curl -X POST https://apim-serverless-starter-dev-njyenins.azure-api.net/auth/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "john.doe@example.com",
@@ -33,8 +41,9 @@ curl -X POST https://func-auth-dev-xxxxx.azurewebsites.net/api/auth/register \
 
 ### 2. Login
 
+**Production (via APIM):**
 ```bash
-curl -X POST https://func-auth-dev-xxxxx.azurewebsites.net/api/auth/login \
+curl -X POST https://apim-serverless-starter-dev-njyenins.azure-api.net/auth/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "john.doe@example.com",
