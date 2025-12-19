@@ -1,0 +1,109 @@
+@page "/register"
+@inject BlazorWeb.Services.ApiService ApiService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Register</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-8">
+    <MudPaper Elevation="3" Class="pa-8">
+        <MudText Typo="Typo.h4" Align="Align.Center" GutterBottom="true">Create Account</MudText>
+
+        <EditForm EditContext="@editContext" OnValidSubmit="OnSubmit">
+            <DataAnnotationsValidator />
+
+            <MudTextField @bind-Value="registerModel.Email"
+                          Label="Email"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          InputType="InputType.Email"
+                          Class="my-3" />
+
+            <MudTextField @bind-Value="registerModel.UserName"
+                          Label="Username"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          Class="my-3" />
+
+            <MudTextField @bind-Value="registerModel.FirstName"
+                          Label="First Name"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          Class="my-3" />
+
+            <MudTextField @bind-Value="registerModel.LastName"
+                          Label="Last Name"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          Class="my-3" />
+
+            <MudTextField @bind-Value="registerModel.Password"
+                          Label="Password"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          InputType="InputType.Password"
+                          Class="my-3" />
+
+            <MudButton ButtonType="ButtonType.Submit"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       FullWidth="true"
+                       Disabled="@loading"
+                       Class="mt-4">
+                @if (loading)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                    <MudText Class="ml-2">Creating account...</MudText>
+                }
+                else
+                {
+                    <span>Register</span>
+                }
+            </MudButton>
+        </EditForm>
+
+        <MudDivider Class="my-4" />
+
+        <MudText Align="Align.Center">
+            Already have an account? <MudLink Href="/login">Sign In</MudLink>
+        </MudText>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private RegisterRequest registerModel = new();
+    private EditContext? editContext;
+    private bool loading = false;
+
+    protected override void OnInitialized()
+    {
+        editContext = new EditContext(registerModel);
+    }
+
+    private async Task OnSubmit()
+    {
+        loading = true;
+        try
+        {
+            var result = await ApiService.RegisterAsync(registerModel);
+
+            if (result.Success)
+            {
+                Snackbar.Add("Registration successful! You can now login.", Severity.Success);
+                Navigation.NavigateTo("/login");
+            }
+            else
+            {
+                Snackbar.Add(result.Message ?? "Registration failed", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+}

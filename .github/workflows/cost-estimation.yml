@@ -1,0 +1,47 @@
+name: Cost Estimation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'infrastructure/**'
+
+jobs:
+  infracost:
+    name: Estimate Infrastructure Cost
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Infracost
+        uses: infracost/actions/setup@v2
+        with:
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
+
+      - name: Generate Infracost JSON
+        run: |
+          infracost breakdown --path=infrastructure \
+            --format=json \
+            --out-file=/tmp/infracost.json
+
+      - name: Post Infracost Comment
+        run: |
+          infracost comment github --path=/tmp/infracost.json \
+            --repo=$GITHUB_REPOSITORY \
+            --github-token=${{ secrets.GITHUB_TOKEN }} \
+            --pull-request=${{ github.event.pull_request.number }} \
+            --behavior=update
+
+      - name: Cost Threshold Check
+        run: |
+          MONTHLY_COST=$(jq -r '.totalMonthlyCost' /tmp/infracost.json)
+          THRESHOLD=500.0
+
+          if (( $(echo "$MONTHLY_COST > $THRESHOLD" | bc -l) )); then
+            echo "❌ Monthly cost $MONTHLY_COST exceeds threshold $THRESHOLD"
+            exit 1
+          else
+            echo "✅ Monthly cost $MONTHLY_COST is within threshold"
+          fi

@@ -1,0 +1,18 @@
+# Example terraform.tfvars file
+# Copy this file to terraform.tfvars and adjust the values
+
+project_name = "serverless"
+environment  = "dev"
+location     = "eastus"
+
+# Optional: Provide your own JWT secret, otherwise it will be auto-generated
+# jwt_secret = "your-super-secure-jwt-secret-key-here"
+
+jwt_issuer             = "https://serverless-auth.azurewebsites.net"
+jwt_audience           = "https://serverless-api.azurewebsites.net"
+jwt_expiration_minutes = 60
+
+tags = {
+  Project   = "Serverless Starter"
+  ManagedBy = "Terraform"
+}

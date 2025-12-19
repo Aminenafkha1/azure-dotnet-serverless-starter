@@ -1,0 +1,79 @@
+@page "/login"
+@inject BlazorWeb.Services.ApiService ApiService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Login</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-8">
+    <MudPaper Elevation="3" Class="pa-8">
+        <MudText Typo="Typo.h4" Align="Align.Center" GutterBottom="true">Sign In</MudText>
+
+        <EditForm EditContext="@editContext" OnValidSubmit="OnSubmit">
+            <DataAnnotationsValidator />
+
+            <MudTextField @bind-Value="loginModel.Email" Label="Email" Variant="Variant.Outlined" Required="true"
+                InputType="InputType.Email" Class="my-4" />
+
+            <MudTextField @bind-Value="loginModel.Password" Label="Password" Variant="Variant.Outlined" Required="true"
+                InputType="InputType.Password" Class="my-4" />
+
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+                Disabled="@loading">
+                @if (loading)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                    <MudText Class="ml-2">Signing in...</MudText>
+                }
+                else
+                {
+                    <span>Sign In</span>
+                }
+            </MudButton>
+        </EditForm>
+
+        <MudDivider Class="my-4" />
+
+        <MudText Align="Align.Center">
+            Don't have an account? <MudLink Href="/register">Register</MudLink>
+        </MudText>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private LoginRequest loginModel = new();
+    private EditContext? editContext;
+    private bool loading = false;
+
+    protected override void OnInitialized()
+    {
+        editContext = new EditContext(loginModel);
+    }
+
+    private async Task OnSubmit()
+    {
+        loading = true;
+        try
+        {
+            var result = await ApiService.LoginAsync(loginModel);
+
+            if (result.Success)
+            {
+                Snackbar.Add("Login successful!", Severity.Success);
+                Navigation.NavigateTo("/products");
+            }
+            else
+            {
+                Snackbar.Add(result.Message ?? "Login failed", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+}

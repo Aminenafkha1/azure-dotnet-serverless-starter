@@ -1,0 +1,114 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    - cron: '0 2 * * 1' # Weekly on Monday at 2 AM UTC
+
+jobs:
+  code-security:
+    name: Code Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Run Dependency Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'ServerlessStarter'
+          path: '.'
+          format: 'HTML'
+
+      - name: Upload Dependency Check Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: reports
+
+  terraform-security:
+    name: Terraform Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run tfsec
+        uses: aquasecurity/tfsec-action@v1.0.0
+        with:
+          working_directory: 'infrastructure'
+          soft_fail: false
+
+      - name: Run Checkov
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: infrastructure/
+          framework: terraform
+          output_format: sarif
+          output_file_path: checkov-results.sarif
+
+      - name: Upload Checkov results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: checkov-results.sarif
+
+  secret-scan:
+    name: Secret Scanning
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks Scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  dotnet-security:
+    name: .NET Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore Dependencies
+        run: dotnet restore ServerlessStarter.sln
+
+      - name: Run Security Audit
+        run: dotnet list package --vulnerable --include-transitive
+
+      - name: Install Snyk CLI
+        run: npm install -g snyk
+
+      - name: Run Snyk to check for vulnerabilities
+        run: snyk test --all-projects --severity-threshold=high
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        continue-on-error: true

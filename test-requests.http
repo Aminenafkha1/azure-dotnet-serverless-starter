@@ -1,0 +1,69 @@
+### Auth Service - Local
+
+# Health Check
+GET http://localhost:7071/api/health
+
+###
+
+# Register User
+POST http://localhost:7071/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "john.doe@example.com",
+  "userName": "johndoe",
+  "password": "SecurePassword123!",
+  "firstName": "John",
+  "lastName": "Doe"
+}
+
+###
+
+# Login
+POST http://localhost:7071/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "john.doe@example.com",
+  "password": "SecurePassword123!"
+}
+
+###
+
+### Product Service - Local
+
+@token = <paste-your-token-here>
+
+# Health Check
+GET http://localhost:7072/api/health
+
+###
+
+# Create Product
+POST http://localhost:7072/api/products
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Laptop Computer",
+  "description": "High-performance laptop for developers",
+  "price": 1299.99,
+  "category": "Electronics",
+  "stock": 50
+}
+
+###
+
+# Get All Products
+GET http://localhost:7072/api/products?page=1&pageSize=10
+Authorization: Bearer {{token}}
+
+###
+
+# Get Product by ID
+@productId = <paste-product-id-here>
+
+GET http://localhost:7072/api/products/{{productId}}
+Authorization: Bearer {{token}}
+
+###

@@ -1,0 +1,194 @@
+name: Deploy Azure Functions
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - '!src/BlazorWeb/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: './src'
+
+jobs:
+  build:
+    name: Build Functions
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore Dependencies
+        run: dotnet restore ServerlessStarter.sln
+
+      - name: Build Solution
+        run: dotnet build ServerlessStarter.sln --configuration Release --no-restore
+
+      - name: Run Tests
+        run: dotnet test ServerlessStarter.sln --configuration Release --no-build --verbosity normal
+
+      - name: Publish Auth Service
+        run: |
+          dotnet publish src/AuthService/AuthService.csproj \
+            --configuration Release \
+            --output ./output/auth \
+            --no-build
+
+      - name: Publish Product Service
+        run: |
+          dotnet publish src/ProductService/ProductService.csproj \
+            --configuration Release \
+            --output ./output/product \
+            --no-build
+
+      - name: Upload Auth Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: auth-service
+          path: ./output/auth
+
+      - name: Upload Product Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: product-service
+          path: ./output/product
+
+  deploy-auth:
+    name: Deploy Auth Service
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: ${{ github.event.inputs.environment || 'dev' }}
+      url: https://${{ steps.deploy.outputs.function-url }}
+
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: auth-service
+          path: ./auth-service
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Azure Functions
+        id: deploy
+        uses: Azure/functions-action@v1
+        with:
+          app-name: func-auth-${{ github.event.inputs.environment || 'dev' }}-${{ secrets.RESOURCE_SUFFIX }}
+          package: ./auth-service
+          publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE_AUTH }}
+
+      - name: Restart Function App
+        run: |
+          az functionapp restart \
+            --name func-auth-${{ github.event.inputs.environment || 'dev' }}-${{ secrets.RESOURCE_SUFFIX }} \
+            --resource-group rg-serverless-starter-${{ github.event.inputs.environment || 'dev' }}-${{ secrets.RESOURCE_SUFFIX }}
+
+  deploy-product:
+    name: Deploy Product Service
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: ${{ github.event.inputs.environment || 'dev' }}
+      url: https://${{ steps.deploy.outputs.function-url }}
+
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: product-service
+          path: ./product-service
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Azure Functions
+        id: deploy
+        uses: Azure/functions-action@v1
+        with:
+          app-name: func-product-${{ github.event.inputs.environment || 'dev' }}-${{ secrets.RESOURCE_SUFFIX }}
+          package: ./product-service
+          publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE_PRODUCT }}
+
+      - name: Restart Function App
+        run: |
+          az functionapp restart \
+            --name func-product-${{ github.event.inputs.environment || 'dev' }}-${{ secrets.RESOURCE_SUFFIX }} \
+            --resource-group rg-serverless-starter-${{ github.event.inputs.environment || 'dev' }}-${{ secrets.RESOURCE_SUFFIX }}
+
+  smoke-tests:
+    name: Run Smoke Tests
+    runs-on: ubuntu-latest
+    needs: [deploy-auth, deploy-product]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Get APIM Gateway URL
+        id: apim
+        run: |
+          APIM_URL=$(az apim show \
+            --name apim-serverless-starter-${{ github.event.inputs.environment || 'dev' }}-${{ secrets.RESOURCE_SUFFIX }} \
+            --resource-group rg-serverless-starter-${{ github.event.inputs.environment || 'dev' }}-${{ secrets.RESOURCE_SUFFIX }} \
+            --query gatewayUrl -o tsv)
+          echo "url=$APIM_URL" >> $GITHUB_OUTPUT
+
+      - name: Test Auth Service Health
+        run: |
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" ${{ steps.apim.outputs.url }}/auth/api/auth/health || echo "000")
+          if [ "$RESPONSE" != "200" ]; then
+            echo "Auth Service health check failed with status: $RESPONSE"
+            exit 1
+          fi
+          echo "✅ Auth Service is healthy"
+
+      - name: Test Product Service Health
+        run: |
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" ${{ steps.apim.outputs.url }}/products/api/products/health || echo "000")
+          if [ "$RESPONSE" != "200" ]; then
+            echo "Product Service health check failed with status: $RESPONSE"
+            exit 1
+          fi
+          echo "✅ Product Service is healthy"
+
+      - name: Test User Registration
+        run: |
+          RESPONSE=$(curl -s -X POST \
+            -H "Content-Type: application/json" \
+            -d '{"email":"test-${{ github.run_id }}@example.com","password":"Test@123456","name":"Test User"}' \
+            ${{ steps.apim.outputs.url }}/auth/api/auth/register)
+
+          if echo "$RESPONSE" | grep -q "success\|token"; then
+            echo "✅ User registration successful"
+          else
+            echo "❌ User registration failed: $RESPONSE"
+            exit 1
+          fi

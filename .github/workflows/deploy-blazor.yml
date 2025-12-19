@@ -1,0 +1,133 @@
+name: Deploy Blazor WebAssembly
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/BlazorWeb/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+
+env:
+  DOTNET_VERSION: '9.0.x'
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy Blazor
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.event.inputs.environment || 'dev' }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Get APIM Gateway URL
+        id: apim
+        run: |
+          APIM_URL=$(az apim show \
+            --name apim-serverless-starter-${{ github.event.inputs.environment || 'dev' }}-${{ secrets.RESOURCE_SUFFIX }} \
+            --resource-group rg-serverless-starter-${{ github.event.inputs.environment || 'dev' }}-${{ secrets.RESOURCE_SUFFIX }} \
+            --query gatewayUrl -o tsv)
+          echo "url=$APIM_URL" >> $GITHUB_OUTPUT
+          echo "APIM Gateway URL: $APIM_URL"
+
+      - name: Update appsettings.Production.json
+        run: |
+          cat > src/BlazorWeb/wwwroot/appsettings.Production.json <<EOF
+          {
+            "ApiSettings": {
+              "AuthServiceUrl": "${{ steps.apim.outputs.url }}/auth",
+              "ProductServiceUrl": "${{ steps.apim.outputs.url }}/products"
+            },
+            "Logging": {
+              "LogLevel": {
+                "Default": "Information",
+                "Microsoft.AspNetCore": "Warning"
+              }
+            }
+          }
+          EOF
+
+      - name: Restore Dependencies
+        run: dotnet restore src/BlazorWeb/BlazorWeb.csproj
+
+      - name: Build Blazor App
+        run: |
+          dotnet publish src/BlazorWeb/BlazorWeb.csproj \
+            --configuration Release \
+            --output ./publish
+
+      - name: Deploy to Azure Storage Static Website
+        run: |
+          STORAGE_ACCOUNT=$(az storage account list \
+            --resource-group rg-serverless-starter-${{ github.event.inputs.environment || 'dev' }}-${{ secrets.RESOURCE_SUFFIX }} \
+            --query "[?starts_with(name, 'stblazor')].name" -o tsv)
+
+          if [ -z "$STORAGE_ACCOUNT" ]; then
+            echo "Creating storage account for Blazor..."
+            STORAGE_ACCOUNT="stblazor${{ github.event.inputs.environment || 'dev' }}${{ secrets.RESOURCE_SUFFIX }}"
+
+            az storage account create \
+              --name $STORAGE_ACCOUNT \
+              --resource-group rg-serverless-starter-${{ github.event.inputs.environment || 'dev' }}-${{ secrets.RESOURCE_SUFFIX }} \
+              --location uksouth \
+              --sku Standard_LRS \
+              --kind StorageV2
+
+            az storage blob service-properties update \
+              --account-name $STORAGE_ACCOUNT \
+              --static-website \
+              --index-document index.html \
+              --404-document index.html
+          fi
+
+          # Upload files
+          az storage blob upload-batch \
+            --account-name $STORAGE_ACCOUNT \
+            --destination '$web' \
+            --source ./publish/wwwroot \
+            --overwrite
+
+          # Get static website URL
+          WEBSITE_URL=$(az storage account show \
+            --name $STORAGE_ACCOUNT \
+            --resource-group rg-serverless-starter-${{ github.event.inputs.environment || 'dev' }}-${{ secrets.RESOURCE_SUFFIX }} \
+            --query "primaryEndpoints.web" -o tsv)
+
+          echo "🚀 Blazor app deployed to: $WEBSITE_URL"
+          echo "website_url=$WEBSITE_URL" >> $GITHUB_OUTPUT
+
+      - name: Purge CDN Cache (if exists)
+        continue-on-error: true
+        run: |
+          CDN_PROFILE=$(az cdn profile list \
+            --resource-group rg-serverless-starter-${{ github.event.inputs.environment || 'dev' }}-${{ secrets.RESOURCE_SUFFIX }} \
+            --query "[0].name" -o tsv)
+
+          if [ ! -z "$CDN_PROFILE" ]; then
+            az cdn endpoint purge \
+              --resource-group rg-serverless-starter-${{ github.event.inputs.environment || 'dev' }}-${{ secrets.RESOURCE_SUFFIX }} \
+              --profile-name $CDN_PROFILE \
+              --name blazor-cdn \
+              --content-paths '/*'
+            echo "✅ CDN cache purged"
+          fi

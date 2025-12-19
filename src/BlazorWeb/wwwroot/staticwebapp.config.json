@@ -1,0 +1,23 @@
+{
+  "$schema": "https://staticwebapp.config.schemas.json",
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": ["/assets/*", "/_framework/*"]
+  },
+  "routes": [
+    {
+      "route": "/*",
+      "allowedRoles": ["anonymous"]
+    }
+  ],
+  "mimeTypes": {
+    ".json": "application/json",
+    ".wasm": "application/wasm"
+  },
+  "responseOverrides": {
+    "404": {
+      "rewrite": "/index.html",
+      "statusCode": 200
+    }
+  }
+}

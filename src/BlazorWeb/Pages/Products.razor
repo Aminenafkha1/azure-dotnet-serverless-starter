@@ -1,0 +1,225 @@
+@page "/products"
+@inject BlazorWeb.Services.ApiService ApiService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Products</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h4" GutterBottom="true">Products</MudText>
+
+    @if (!ApiService.IsAuthenticated)
+    {
+        <MudAlert Severity="Severity.Warning" Class="my-4">
+            Please <MudLink Href="/login">login</MudLink> to view and manage products.
+        </MudAlert>
+    }
+    else
+    {
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenCreateDialog" Class="mb-4">
+            <MudIcon Icon="@Icons.Material.Filled.Add" Class="mr-2" /> Add Product
+        </MudButton>
+
+        @if (loading)
+        {
+            <MudProgressLinear Indeterminate="true" />
+        }
+        else if (products.Any())
+        {
+            <MudGrid>
+                @foreach (var product in products)
+                {
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudCard Elevation="3">
+                            <MudCardContent>
+                                <MudText Typo="Typo.h6">@product.Name</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">@product.Category</MudText>
+                                <MudText Typo="Typo.body2" Class="mt-2">@product.Description</MudText>
+                                <MudDivider Class="my-2" />
+                                <MudText Typo="Typo.h6" Color="Color.Primary">$@product.Price.ToString("F2")</MudText>
+                                <MudText Typo="Typo.body2">Stock: @product.Stock</MudText>
+                            </MudCardContent>
+                            <MudCardActions>
+                                <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => OpenEditDialog(product))">Edit</MudButton>
+                                <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="@(() => DeleteProduct(product.Id))">Delete</MudButton>
+                            </MudCardActions>
+                        </MudCard>
+                    </MudItem>
+                }
+            </MudGrid>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Info">No products found. Create your first product!</MudAlert>
+        }
+    }
+</MudContainer>
+
+<MudDialog @bind-Visible="showDialog">
+    <DialogContent>
+        <MudText Typo="Typo.h6" Class="mb-4">@(editingProduct == null ? "Create Product" : "Edit Product")</MudText>
+
+        <MudTextField @bind-Value="productForm.Name" Label="Name" Variant="Variant.Outlined" Required="true" Class="my-2" />
+        <MudTextField @bind-Value="productForm.Description" Label="Description" Variant="Variant.Outlined" Lines="3" Class="my-2" />
+        <MudTextField @bind-Value="productForm.Category" Label="Category" Variant="Variant.Outlined" Required="true" Class="my-2" />
+        <MudNumericField @bind-Value="productForm.Price" Label="Price" Variant="Variant.Outlined" Required="true" Min="0" Step="0.01M" Class="my-2" />
+        <MudNumericField @bind-Value="productForm.Stock" Label="Stock" Variant="Variant.Outlined" Required="true" Min="0" Class="my-2" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CloseDialog" Variant="Variant.Text">Cancel</MudButton>
+        <MudButton OnClick="SaveProduct" Variant="Variant.Filled" Color="Color.Primary" Disabled="@savingProduct">
+            @if (savingProduct)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+            }
+            else
+            {
+                <span>Save</span>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<ProductResponse> products = new();
+    private bool loading = true;
+    private bool showDialog = false;
+    private bool savingProduct = false;
+    private ProductResponse? editingProduct;
+    private CreateProductRequest productForm = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (ApiService.IsAuthenticated)
+        {
+            await LoadProducts();
+        }
+        loading = false;
+    }
+
+    private async Task LoadProducts()
+    {
+        loading = true;
+        try
+        {
+            var result = await ApiService.GetProductsAsync();
+            if (result.Success && result.Data != null)
+            {
+                products = result.Data.ToList();
+            }
+            else
+            {
+                Snackbar.Add(result.Message ?? "Failed to load products", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void OpenCreateDialog()
+    {
+        editingProduct = null;
+        productForm = new CreateProductRequest();
+        showDialog = true;
+    }
+
+    private void OpenEditDialog(ProductResponse product)
+    {
+        editingProduct = product;
+        productForm = new CreateProductRequest
+        {
+            Name = product.Name,
+            Description = product.Description,
+            Category = product.Category,
+            Price = product.Price,
+            Stock = product.Stock
+        };
+        showDialog = true;
+    }
+
+    private void CloseDialog()
+    {
+        showDialog = false;
+        editingProduct = null;
+    }
+
+    private async Task SaveProduct()
+    {
+        savingProduct = true;
+        try
+        {
+            if (editingProduct == null)
+            {
+                var result = await ApiService.CreateProductAsync(productForm);
+                if (result.Success)
+                {
+                    Snackbar.Add("Product created successfully!", Severity.Success);
+                    await LoadProducts();
+                    CloseDialog();
+                }
+                else
+                {
+                    Snackbar.Add(result.Message ?? "Failed to create product", Severity.Error);
+                }
+            }
+            else
+            {
+                var updateRequest = new UpdateProductRequest
+                {
+                    Name = productForm.Name,
+                    Description = productForm.Description,
+                    Category = productForm.Category,
+                    Price = productForm.Price,
+                    Stock = productForm.Stock
+                };
+
+                var result = await ApiService.UpdateProductAsync(editingProduct.Id, updateRequest);
+                if (result.Success)
+                {
+                    Snackbar.Add("Product updated successfully!", Severity.Success);
+                    await LoadProducts();
+                    CloseDialog();
+                }
+                else
+                {
+                    Snackbar.Add(result.Message ?? "Failed to update product", Severity.Error);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            savingProduct = false;
+        }
+    }
+
+    private async Task DeleteProduct(string id)
+    {
+        try
+        {
+            var result = await ApiService.DeleteProductAsync(id);
+            if (result.Success)
+            {
+                Snackbar.Add("Product deleted successfully!", Severity.Success);
+                await LoadProducts();
+            }
+            else
+            {
+                Snackbar.Add(result.Message ?? "Failed to delete product", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+}

@@ -1,0 +1,58 @@
+﻿@page "/"
+@using MudBlazor
+
+<PageTitle>Home</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+    <MudPaper Elevation="3" Class="pa-8">
+        <MudText Typo="Typo.h3" Align="Align.Center" GutterBottom="true">
+            Welcome to Serverless Starter
+        </MudText>
+        <MudText Typo="Typo.h6" Align="Align.Center" Color="Color.Secondary" Class="mb-8">
+            A production-ready Azure Functions starter with Blazor WebAssembly
+        </MudText>
+
+        <MudGrid Class="mt-8">
+            <MudItem xs="12" md="4">
+                <MudPaper Elevation="2" Class="pa-4 text-center" Style="height: 100%">
+                    <MudIcon Icon="@Icons.Material.Filled.Security" Size="Size.Large" Color="Color.Primary"
+                        Class="mb-4" />
+                    <MudText Typo="Typo.h6" GutterBottom="true">Secure Authentication</MudText>
+                    <MudText Typo="Typo.body2">JWT-based authentication with BCrypt password hashing</MudText>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudPaper Elevation="2" Class="pa-4 text-center" Style="height: 100%">
+                    <MudIcon Icon="@Icons.Material.Filled.CloudQueue" Size="Size.Large" Color="Color.Secondary"
+                        Class="mb-4" />
+                    <MudText Typo="Typo.h6" GutterBottom="true">Serverless Architecture</MudText>
+                    <MudText Typo="Typo.body2">Azure Functions with Cosmos DB for scalable backend</MudText>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudPaper Elevation="2" Class="pa-4 text-center" Style="height: 100%">
+                    <MudIcon Icon="@Icons.Material.Filled.Dashboard" Size="Size.Large" Color="Color.Tertiary"
+                        Class="mb-4" />
+                    <MudText Typo="Typo.h6" GutterBottom="true">Modern UI</MudText>
+                    <MudText Typo="Typo.body2">Blazor WebAssembly with MudBlazor components</MudText>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+
+        <MudDivider Class="my-8" />
+
+        <MudText Typo="Typo.h5" GutterBottom="true">Get Started</MudText>
+        <MudText Typo="Typo.body1" Class="mb-4">
+            Create an account to start managing products and exploring the features.
+        </MudText>
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Href="/register">
+            Create Account
+        </MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large" Href="/login" Class="ml-4">
+            Sign In
+        </MudButton>
+    </MudPaper>
+</MudContainer>
