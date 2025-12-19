@@ -6,6 +6,16 @@ on:
     paths:
       - 'infrastructure/**'
       - '.github/workflows/terraform-*.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to plan'
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
 
 env:
   ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
@@ -16,11 +26,11 @@ env:
 
 jobs:
   terraform-plan:
-    name: Terraform Plan
+    name: Terraform Plan - ${{ matrix.environment }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        environment: [dev, staging, prod]
+        environment: [dev]  # Only plan dev for PRs, use workflow_dispatch for staging/prod
 
     steps:
       - name: Checkout Code
@@ -34,7 +44,10 @@ jobs:
       - name: Azure Login
         uses: azure/login@v1
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Terraform Format Check
         id: fmt

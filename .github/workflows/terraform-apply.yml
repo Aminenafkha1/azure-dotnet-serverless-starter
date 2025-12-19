@@ -2,13 +2,13 @@ name: Terraform Apply
 
 on:
   push:
-    branches: [main]
+    branches: [main]  # Only auto-deploy to dev on main branch
     paths:
       - 'infrastructure/**'
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Environment to deploy'
+        description: 'Environment to deploy (staging/prod require manual approval)'
         required: true
         type: choice
         options:
@@ -25,7 +25,7 @@ env:
 
 jobs:
   terraform-apply:
-    name: Terraform Apply
+    name: Terraform Apply - ${{ github.event.inputs.environment || 'dev' }}
     runs-on: ubuntu-latest
     environment:
       name: ${{ github.event.inputs.environment || 'dev' }}
@@ -42,7 +42,10 @@ jobs:
       - name: Azure Login
         uses: azure/login@v1
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Terraform Init
         run: |
