@@ -44,6 +44,9 @@ __azurite_db*__.json
 *.tfstate
 *.tfstate.*
 *.tfvars
+!dev.tfvars
+!staging.tfvars
+!prod.tfvars
 .terraform.lock.hcl
 terraform.tfplan
 terraform-outputs.json

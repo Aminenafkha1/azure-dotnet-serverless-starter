@@ -386,7 +386,8 @@ Repository → Actions → Workflows
 
 ```yaml
 Service Principal Roles:
-├── Contributor (Subscription level) - For Terraform
+├── Contributor (Subscription level) - For Terraform resource creation
+├── User Access Administrator (Subscription level) - For role assignments
 ├── Key Vault Administrator - For secret management
 └── Storage Blob Data Contributor - For Terraform state
 
