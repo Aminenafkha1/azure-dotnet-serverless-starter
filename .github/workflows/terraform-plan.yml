@@ -26,11 +26,11 @@ env:
 
 jobs:
   terraform-plan:
-    name: Terraform Plan
+    name: Terraform Plan - ${{ matrix.environment }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        environment: [dev, staging, prod]
+        environment: [dev]  # Only plan dev for PRs, use workflow_dispatch for staging/prod
 
     steps:
       - name: Checkout Code

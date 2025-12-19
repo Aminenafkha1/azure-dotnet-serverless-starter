@@ -2,13 +2,13 @@ name: Terraform Apply
 
 on:
   push:
-    branches: [main]
+    branches: [main]  # Only auto-deploy to dev on main branch
     paths:
       - 'infrastructure/**'
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Environment to deploy'
+        description: 'Environment to deploy (staging/prod require manual approval)'
         required: true
         type: choice
         options:
@@ -25,10 +25,11 @@ env:
 
 jobs:
   terraform-apply:
-    name: Terraform Apply
+    name: Terraform Apply - ${{ github.event.inputs.environment || 'dev' }}
     runs-on: ubuntu-latest
     environment:
       name: ${{ github.event.inputs.environment || 'dev' }}
+      url: https://portal.azure.com/#@/resource/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/rg-serverless-starter-${{ github.event.inputs.environment || 'dev' }}-${{ secrets.RESOURCE_SUFFIX }}
 
     steps:
       - name: Checkout Code

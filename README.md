@@ -576,6 +576,7 @@ Comprehensive documentation is available in the `/docs` folder:
 - **[Environment Configuration](docs/ENVIRONMENT_CONFIG.md)** - Multi-environment setup guide
 - **[Local Development with Azure](docs/LOCAL_DEVELOPMENT_WITH_AZURE.md)** - Connect local dev to Azure resources
 - **[DevOps & CI/CD](DEVOPS.md)** - Complete GitHub Actions pipeline setup
+- **[Workflow Strategy](docs/WORKFLOW_STRATEGY.md)** - Branch strategy and deployment automation
 - **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
 
 ## 🤝 Contributing

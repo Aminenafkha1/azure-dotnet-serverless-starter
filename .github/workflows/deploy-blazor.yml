@@ -2,13 +2,14 @@ name: Deploy Blazor WebAssembly
 
 on:
   push:
-    branches: [main]
+    branches: [main]  # Auto-deploy to dev on main branch
     paths:
       - 'src/BlazorWeb/**'
+      - '.github/workflows/deploy-blazor.yml'
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Environment to deploy'
+        description: 'Environment to deploy (staging/prod require approval)'
         required: true
         type: choice
         options:
